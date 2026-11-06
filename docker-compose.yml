@@ -1,0 +1,40 @@
+services:
+  calculator-app:
+    build:
+      context: ./Deployment
+      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME:-meerqadir}/cloud-calculator:latest
+    container_name: calculator-app
+    ports:
+      - "80:80"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: calculator-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-calcadmin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme123}
+      POSTGRES_DB: ${POSTGRES_DB:-calculatordb}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-calcadmin} -d ${POSTGRES_DB:-calculatordb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+
+networks:
+  app-network:
+    driver: bridge
